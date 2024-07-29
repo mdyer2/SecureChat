@@ -1,6 +1,6 @@
-const apiUrl = "http://18.220.174.106:8000" ;
+const apiUrl = window.location.origin;
 
-// Section to Register on the website and become a user 
+// Section to Register on the website and become a user
 document.getElementById('registerForm').addEventListener('submit', function(event) {
     event.preventDefault();
     const username = document.getElementById('username').value;
@@ -12,12 +12,12 @@ document.getElementById('registerForm').addEventListener('submit', function(even
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ username: username, email: email, password: password })
     })
     .then(response => response.json())
     .then(data => {
         alert(data.message);
-        if (data.message === 'User has been registered successfully!') {
+        if (data.message === 'User registered successfully') {
             window.location.href = 'login.html';
         }
     })
