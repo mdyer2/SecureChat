@@ -1,4 +1,4 @@
-from flask import request, jsonify, render_template, redirect, url_for, session
+from flask import request, jsonify, render_template_string, redirect, url_for, session
 import jwt
 from datetime import datetime, timedelta
 from models import User, Message
@@ -7,35 +7,52 @@ from extensions import db
 def register_routes(app):
     @app.route('/')
     def index():
-        return render_template('homepageIndex.html')
+        return render_template_string(open('homepageIndex.html').read())
 
     @app.route('/register', methods=['GET', 'POST'])
     def register():
         if request.method == 'POST':
-            username = request.form['username']
-            email = request.form['email']
-            password = request.form['password']
+            data = request.get_json()  # Ensure this reads JSON data
+            if data is None:
+                return jsonify({'message': 'Invalid data format, expected JSON'}), 400
+            
+            username = data.get('username')
+            email = data.get('email')
+            password = data.get('password')
+            
+            if not username or not email or not password:
+                return jsonify({'message': 'All fields are required'}), 400
+            
             if User.query.filter_by(email=email).first():
                 return jsonify({'message': 'Email already registered'}), 400
+            
             new_user = User(username=username, email=email)
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
-            return redirect(url_for('login'))
-        return render_template('registerForm.html')
+            
+            return jsonify({'message': 'User registered successfully'}), 201
+        return render_template_string(open('registerForm.html').read())
 
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
-            email = request.form['email']
-            password = request.form['password']
+            data = request.get_json()
+            if data is None:
+                return jsonify({'message': 'Invalid data format, expected JSON'}), 400
+
+            email = data.get('email')
+            password = data.get('password')
+            
+            if not email or not password:
+                return jsonify({'message': 'All fields are required'}), 400
+            
             user = User.query.filter_by(email=email).first()
             if user and user.check_password(password):
                 token = jwt.encode({'user_id': user.id, 'exp': datetime.utcnow() + timedelta(hours=1)}, app.config['SECRET_KEY'])
-                session['token'] = token
-                return redirect(url_for('dashboard'))
+                return jsonify({'token': token})
             return jsonify({'message': 'Invalid credentials'}), 401
-        return render_template('login.html')
+        return render_template_string(open('login.html').read())
 
     @app.route('/dashboard', methods=['GET', 'POST'])
     def dashboard():
